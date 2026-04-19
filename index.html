@@ -1345,6 +1345,7 @@ const HASHES = {
   '2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea': 'demo',
   '739b57a56b23dd3fee425cfaed20b5086729c8414c092b875e213ff4f42c44b0': 'FVAODE2026',
   '484c8d56da47b171e8b50a07e8284c3569c7d4e5341785ea1d894a24b99dfd77': 'GDEDPA2026',
+  '1af8c147aefa4d291f9fd6770b55f3c0eaef54de37bb8d6a049443e0e415f078': 'HBSVOC2026',
 }; // multi-code access
 
 async function sha256(str) {
@@ -1483,145 +1484,200 @@ setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 5000)
 "></div>
 
 <!-- ADMIN -->
-<div id="admin-panel" style="display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;font-family:system-ui,sans-serif;color:#111;">
-  <div style="background:#fff;border-bottom:2px solid #1a4fd6;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-    <div style="display:flex;align-items:center;gap:20px;">
-      <span style="font-size:17px;font-weight:700;color:#1a4fd6;">eSplit Admin</span>
-      <span id="admin-status" style="font-size:12px;color:#888;"></span>
+
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" style="display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;font-family:'Barlow Condensed',sans-serif;color:#1a2340;">
+
+  <!-- Header -->
+  <div style="background:#1a2340;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:24px;">
+      <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">eSplit Admin</span>
+      <span id="admin-status" style="font-size:13px;color:rgba(255,255,255,0.5);">Chargement...</span>
     </div>
-    <button onclick="closeAdmin()" style="background:#f0f2f8;border:1px solid #dde;color:#333;padding:7px 18px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;">Retour</button>
+    <button onclick="closeAdmin()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:7px 20px;border-radius:3px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;font-size:13px;text-transform:uppercase;">← Retour</button>
   </div>
-  <div style="max-width:1060px;margin:0 auto;padding:32px 40px;">
-    <div style="font-size:11px;font-weight:700;color:#1a4fd6;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between;">
-      <span>Analytics - 30 jours</span>
-      <a href="https://plausible.io/esplit.kreativlabs.tv" target="_blank" style="color:#1a4fd6;text-decoration:none;font-weight:400;">Plausible complet</a>
+
+  <div style="max-width:1100px;margin:0 auto;padding:40px 32px;">
+
+    <!-- Stats row -->
+    <div style="margin-bottom:36px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;">Analytics <span style="color:#1a4fd6;">— 30 derniers jours</span></h2>
+        <a href="https://plausible.io/esplit.kreativlabs.tv" target="_blank" style="font-size:13px;color:#1a4fd6;text-decoration:none;letter-spacing:1px;">Plausible complet ↗</a>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Visiteurs</div>
+          <div id="s-visitors" style="font-size:34px;font-weight:700;color:#1a4fd6;">—</div>
+          <div style="font-size:12px;color:#aab0c8;">uniques</div>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Pages vues</div>
+          <div id="s-pageviews" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
+          <div style="font-size:12px;color:#aab0c8;">total</div>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Durée moy.</div>
+          <div id="s-duration" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
+          <div style="font-size:12px;color:#aab0c8;">par session</div>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Rebond</div>
+          <div id="s-bounce" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
+          <div style="font-size:12px;color:#aab0c8;">taux</div>
+        </div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;">
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:18px;">
-        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Visiteurs</div>
-        <div id="s-visitors" style="font-size:30px;font-weight:700;color:#1a4fd6;">-</div>
+
+    <!-- Sources + Pages -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px;">
+      <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
+        <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Sources · Contacts</div>
+        <div id="s-sources" style="font-size:15px;color:#1a2340;">Chargement...</div>
       </div>
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:18px;">
-        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Pages vues</div>
-        <div id="s-pageviews" style="font-size:30px;font-weight:700;color:#111;">-</div>
-      </div>
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:18px;">
-        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Duree moy.</div>
-        <div id="s-duration" style="font-size:30px;font-weight:700;color:#111;">-</div>
-      </div>
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:18px;">
-        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Rebond</div>
-        <div id="s-bounce" style="font-size:30px;font-weight:700;color:#111;">-</div>
+      <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
+        <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Slides vues</div>
+        <div id="s-pages" style="font-size:15px;color:#1a2340;">Chargement...</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:20px;">
-        <div style="font-size:11px;font-weight:700;color:#1a4fd6;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">Sources</div>
-        <div id="s-sources" style="font-size:14px;color:#555;">Chargement...</div>
-      </div>
-      <div style="background:#f5f7ff;border:1px solid #dde3f5;border-radius:6px;padding:20px;">
-        <div style="font-size:11px;font-weight:700;color:#1a4fd6;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">Slides vues</div>
-        <div id="s-pages" style="font-size:14px;color:#555;">Chargement...</div>
+
+    <!-- Codes d'accès -->
+    <div style="margin-bottom:36px;">
+      <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;margin-bottom:20px;">Codes d'accès</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;" id="admin-codes">
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">demo</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">Tests internes</span></div>
+          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">FVAODE2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">François Valadoux · AMP Visual TV</span></div>
+          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">GDEDPA2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">GDE · DPA</span></div>
+          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">HBSVOC2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">HBS</span></div>
+          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
+        </div>
       </div>
     </div>
-    <div style="margin-bottom:28px;">
-      <div style="font-size:11px;font-weight:700;color:#1a4fd6;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">Codes acces</div>
-      <div id="s-codes"></div>
-    </div>
+
+    <!-- Liens UTM -->
     <div>
-      <div style="font-size:11px;font-weight:700;color:#1a4fd6;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">Liens tracking</div>
-      <div id="s-utm"></div>
+      <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;margin-bottom:20px;">Liens trackés</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">HBS</span>
+          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=hbs</span>
+          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=hbs',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">Canal+</span>
+          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=canal</span>
+          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=canal',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">AMP Visual TV</span>
+          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=ampvisual</span>
+          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=ampvisual',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">OBS</span>
+          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=obs</span>
+          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=obs',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
+        </div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">WEC · GDE</span>
+          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=wec</span>
+          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=wec',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
+        </div>
+      </div>
     </div>
+
   </div>
 </div>
+
 <script>
-const PK = 'EKaaoByhwYRvSmdTx9kSZObMZ5_c8-RFt3mHO-951hbYoFw3rbZKVgeaFd8oQifS';
-const PD = 'esplit.kreativlabs.tv';
-const ADMIN_CODES = [
-  {code:'demo',label:'Tests internes'},
-  {code:'FVAODE2026',label:'Francois Valadoux - AMP Visual TV'},
-  {code:'GDEDPA2026',label:'GDE / DPA'}
-];
-const UTM_LIST = [
-  {name:'HBS',utm:'hbs'},
-  {name:'Canal+',utm:'canal'},
-  {name:'AMP Visual TV',utm:'ampvisual'},
-  {name:'OBS',utm:'obs'},
-  {name:'WEC',utm:'wec'}
-];
-function openAdmin(){
-  document.getElementById('admin-panel').style.display='block';
-  document.body.style.overflow='hidden';
-  renderAdminCodes();
-  renderAdminUTM();
-  loadPlausible();
+// ── Admin ──
+const PLAUSIBLE_KEY = 'EKaaoByhwYRvSmdTx9kSZObMZ5_c8-RFt3mHO-951hbYoFw3rbZKVgeaFd8oQifS';
+const PLAUSIBLE_DOMAIN = 'esplit.kreativlabs.tv';
+
+function openAdmin() {
+  document.getElementById('admin-panel').style.display = 'block';
+  loadStats();
 }
-function closeAdmin(){
-  document.getElementById('admin-panel').style.display='none';
-  document.body.style.overflow='';
+
+function closeAdmin() {
+  document.getElementById('admin-panel').style.display = 'none';
 }
-function renderAdminCodes(){
-  document.getElementById('s-codes').innerHTML=ADMIN_CODES.map(function(c){
-    return '<div style="background:#fff;border:1px solid #dde;border-radius:4px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div><span style="font-size:14px;font-weight:700;color:#1a4fd6;font-family:monospace;">'+c.code+'</span><span style="font-size:13px;color:#666;margin-left:14px;">'+c.label+'</span></div><span style="font-size:11px;color:#00aa55;font-weight:700;">ACTIF</span></div>';
-  }).join('');
-}
-function renderAdminUTM(){
-  var base='https://esplit.kreativlabs.tv';
-  document.getElementById('s-utm').innerHTML=UTM_LIST.map(function(c){
-    var url=base+'?utm_source='+c.utm;
-    return '<div style="background:#fff;border:1px solid #dde;border-radius:4px;padding:10px 18px;display:flex;align-items:center;gap:14px;margin-bottom:8px;"><span style="font-size:13px;font-weight:600;min-width:120px;">'+c.name+'</span><span style="font-size:12px;color:#1a4fd6;flex:1;font-family:monospace;">'+url+'</span><button onclick="copyUTM(this,\''+url+'\')" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;">Copier</button></div>';
-  }).join('');
-}
-function copyUTM(btn,url){
-  navigator.clipboard.writeText(url).then(function(){
-    btn.textContent='Copie!';
-    setTimeout(function(){btn.textContent='Copier';},2000);
+
+function copyUTM(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ COPIÉ';
+    btn.style.background = '#22a06b';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = '#1a4fd6'; }, 1500);
   });
 }
-async function loadPlausible(){
-  var status=document.getElementById('admin-status');
-  status.textContent='Chargement...';
-  try{
-    var h={'Authorization':'Bearer '+PK};
-    var base='https://plausible.io/api/v1';
-    var r=await fetch(base+'/stats/aggregate?site_id='+PD+'&period=30d&metrics=visitors,pageviews,visit_duration,bounce_rate',{headers:h});
-    var data=await r.json();
-    if(data.results){
-      var v=data.results.visitors&&data.results.visitors.value;
-      var p=data.results.pageviews&&data.results.pageviews.value;
-      var d=data.results.visit_duration&&data.results.visit_duration.value;
-      var b=data.results.bounce_rate&&data.results.bounce_rate.value;
-      document.getElementById('s-visitors').textContent=v!=null?v:'0';
-      document.getElementById('s-pageviews').textContent=p!=null?p:'0';
-      document.getElementById('s-duration').textContent=d!=null?Math.floor(d/60)+'mn':'0';
-      document.getElementById('s-bounce').textContent=b!=null?b+'%':'0%';
-      status.textContent='Mis a jour '+new Date().toLocaleTimeString('fr-FR');
-    }
-    var rs=await fetch(base+'/stats/breakdown?site_id='+PD+'&period=30d&property=visit:source&limit=8',{headers:h});
-    var sd=await rs.json();
-    if(sd.results&&sd.results.length){
-      document.getElementById('s-sources').innerHTML=sd.results.map(function(s){
-        return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:14px;"><span>'+(s.source||'Direct')+'</span><span style="font-weight:700;color:#1a4fd6;">'+s.visitors+'</span></div>';
-      }).join('');
+
+async function loadStats() {
+  const status = document.getElementById('admin-status');
+  const h = {'Authorization': 'Bearer ' + PLAUSIBLE_KEY};
+  const base = 'https://plausible.io/api/v1';
+
+  try {
+    // Aggregate
+    const r = await fetch(base + '/stats/aggregate?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&metrics=visitors,pageviews,visit_duration,bounce_rate', {headers: h});
+    const d = await r.json();
+    if (d.results) {
+      document.getElementById('s-visitors').textContent = (d.results.visitors?.value ?? '—').toLocaleString('fr-FR');
+      document.getElementById('s-pageviews').textContent = (d.results.pageviews?.value ?? '—').toLocaleString('fr-FR');
+      const dur = d.results.visit_duration?.value;
+      document.getElementById('s-duration').textContent = dur ? Math.round(dur/60) + ' min' : '—';
+      const b = d.results.bounce_rate?.value;
+      document.getElementById('s-bounce').textContent = b != null ? b + '%' : '—';
+      status.textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
     } else {
-      document.getElementById('s-sources').innerHTML='<span style="color:#aaa;font-size:13px;">Aucune donnee.</span>';
+      status.textContent = 'Aucune donnée — site pas encore visité via ce domaine.';
     }
-    var rp=await fetch(base+'/stats/breakdown?site_id='+PD+'&period=30d&property=event:page&limit=8',{headers:h});
-    var pd2=await rp.json();
-    if(pd2.results&&pd2.results.length){
-      document.getElementById('s-pages').innerHTML=pd2.results.map(function(p){
-        return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:13px;"><span style="color:#444;">'+p.page+'</span><span style="font-weight:700;">'+p.visitors+'</span></div>';
-      }).join('');
+
+    // Sources
+    const rs = await fetch(base + '/stats/breakdown?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&property=visit:source&limit=8', {headers: h});
+    const ds = await rs.json();
+    const srcEl = document.getElementById('s-sources');
+    if (ds.results?.length) {
+      srcEl.innerHTML = ds.results.map(s =>
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e8ecf4;">' +
+        '<span style="color:#1a2340;">' + (s.source || 'Direct') + '</span>' +
+        '<span style="color:#1a4fd6;font-weight:700;">' + s.visitors + '</span></div>'
+      ).join('');
     } else {
-      document.getElementById('s-pages').innerHTML='<span style="color:#aaa;font-size:13px;">Aucune donnee.</span>';
+      srcEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune visite enregistrée.</span>';
     }
-  } catch(e){
-    status.textContent='Erreur: '+e.message;
-    document.getElementById('s-sources').innerHTML='<span style="color:#c33;font-size:13px;">Erreur API.</span>';
+
+    // Pages
+    const rp = await fetch(base + '/stats/breakdown?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&property=event:page&limit=10', {headers: h});
+    const dp = await rp.json();
+    const pgEl = document.getElementById('s-pages');
+    if (dp.results?.length) {
+      pgEl.innerHTML = dp.results.map(p =>
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e8ecf4;">' +
+        '<span style="color:#1a2340;font-size:13px;">' + p.page + '</span>' +
+        '<span style="color:#1a4fd6;font-weight:700;">' + p.visitors + '</span></div>'
+      ).join('');
+    } else {
+      pgEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune donnée.</span>';
+    }
+
+  } catch(e) {
+    status.textContent = 'Erreur API : ' + e.message;
+    document.getElementById('s-sources').innerHTML = '<span style="color:#c33;font-size:13px;">Erreur API.</span>';
   }
 }
 </script>
-
 
 </body>
 </html>
