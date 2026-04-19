@@ -1346,6 +1346,7 @@ const HASHES = {
   '484c8d56da47b171e8b50a07e8284c3569c7d4e5341785ea1d894a24b99dfd77': 'GDEDPA2026',
   '1af8c147aefa4d291f9fd6770b55f3c0eaef54de37bb8d6a049443e0e415f078': 'HBSVOC2026',
   'fcfa982790c8a956bf3da80540387c48e6251857f3d7ca50b3f3eca1c6326e0a': 'AMM042026',
+  'a50abce77a0286c853d6a24ef520aeee949ce93da81ba137d5a3ff1e7a9cc39a': 'FFTC042026',
 }; // multi-code access
 
 async function sha256(str) {
@@ -1370,6 +1371,8 @@ async function checkPassword() {
       buildDots();
       updateNav();
       updateCaption(slides[0].id);
+      // Start session tracking via API
+      startSessionTracking(document.getElementById('pwInput').value.trim());
     }
   } else {
     const wrap = document.getElementById('inputWrap');
@@ -1427,6 +1430,8 @@ function goTo(n) {
   updateProgress();
   const slideId = slides[current].id;
   updateCaption(slideId);
+  // Track slide view via API heartbeat
+  sendHeartbeat();
   if (window.plausible) plausible('Slide', {props: {slide: slideId}});
 }
 
@@ -1495,161 +1500,274 @@ setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 5000)
       <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">eSplit Admin</span>
       <span id="admin-status" style="font-size:13px;color:rgba(255,255,255,0.5);">Chargement...</span>
     </div>
-    <button onclick="closeAdmin()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:7px 20px;border-radius:3px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;font-size:13px;text-transform:uppercase;">← Retour</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="admin-active-badge" style="display:none;background:#22a06b;color:#fff;padding:4px 12px;border-radius:12px;font-size:12px;letter-spacing:1px;"></span>
+      <button onclick="closeAdmin()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:7px 20px;border-radius:3px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;font-size:13px;text-transform:uppercase;">← Retour</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="background:#f4f6fb;border-bottom:1px solid #e0e4f0;padding:0 40px;display:flex;gap:0;">
+    <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="admin-tab admin-tab-active" style="padding:14px 28px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a4fd6;cursor:pointer;border-bottom:3px solid #1a4fd6;">Dashboard</button>
+    <button onclick="switchAdminTab('codes')" id="tab-codes" class="admin-tab" style="padding:14px 28px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#8a94b8;cursor:pointer;border-bottom:3px solid transparent;">Codes d'accès</button>
+    <button onclick="switchAdminTab('sessions')" id="tab-sessions" class="admin-tab" style="padding:14px 28px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#8a94b8;cursor:pointer;border-bottom:3px solid transparent;">Sessions & Logs</button>
+    <button onclick="switchAdminTab('links')" id="tab-links" class="admin-tab" style="padding:14px 28px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#8a94b8;cursor:pointer;border-bottom:3px solid transparent;">Liens trackés</button>
   </div>
 
   <div style="max-width:1100px;margin:0 auto;padding:40px 32px;">
 
-    <!-- Stats row -->
-    <div style="margin-bottom:36px;">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
-        <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;">Analytics <span style="color:#1a4fd6;">— 30 derniers jours</span></h2>
-        <a href="https://plausible.io/esplit.kreativlabs.tv" target="_blank" style="font-size:13px;color:#1a4fd6;text-decoration:none;letter-spacing:1px;">Plausible complet ↗</a>
+    <!-- ═══ TAB: DASHBOARD ═══ -->
+    <div id="panel-dashboard">
+      <!-- KPI Row -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
+          <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;">Analytics <span style="color:#1a4fd6;">— 30 derniers jours</span></h2>
+          <a href="https://plausible.io/esplit.kreativlabs.tv" target="_blank" style="font-size:13px;color:#1a4fd6;text-decoration:none;letter-spacing:1px;">Plausible complet ↗</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
+          <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Visites totales</div>
+            <div id="s-total-visits" style="font-size:34px;font-weight:700;color:#1a4fd6;">—</div>
+            <div style="font-size:12px;color:#aab0c8;">30 derniers jours</div>
+          </div>
+          <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Sessions</div>
+            <div id="s-total-sessions" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
+            <div style="font-size:12px;color:#aab0c8;">trackées</div>
+          </div>
+          <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Durée moy.</div>
+            <div id="s-avg-duration" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
+            <div style="font-size:12px;color:#aab0c8;">par session</div>
+          </div>
+          <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Codes actifs</div>
+            <div id="s-active-codes" style="font-size:34px;font-weight:700;color:#22a06b;">—</div>
+            <div style="font-size:12px;color:#aab0c8;">sur <span id="s-total-codes">—</span></div>
+          </div>
+          <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">En ligne</div>
+            <div id="s-active-sessions" style="font-size:34px;font-weight:700;color:#e65100;">—</div>
+            <div style="font-size:12px;color:#aab0c8;">maintenant</div>
+          </div>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
-          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Visiteurs</div>
-          <div id="s-visitors" style="font-size:34px;font-weight:700;color:#1a4fd6;">—</div>
-          <div style="font-size:12px;color:#aab0c8;">uniques</div>
+
+      <!-- Usage by code + Plausible -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px;">
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
+          <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Visites par code</div>
+          <div id="s-usage-by-code" style="font-size:15px;color:#1a2340;">Chargement...</div>
         </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
-          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Pages vues</div>
-          <div id="s-pageviews" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
-          <div style="font-size:12px;color:#aab0c8;">total</div>
+        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
+          <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Sources · Plausible</div>
+          <div id="s-sources" style="font-size:15px;color:#1a2340;">Chargement...</div>
         </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
-          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Durée moy.</div>
-          <div id="s-duration" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
-          <div style="font-size:12px;color:#aab0c8;">par session</div>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:20px;">
-          <div style="font-size:12px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:8px;">Rebond</div>
-          <div id="s-bounce" style="font-size:34px;font-weight:700;color:#1a2340;">—</div>
-          <div style="font-size:12px;color:#aab0c8;">taux</div>
-        </div>
+      </div>
+
+      <!-- Daily chart -->
+      <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;margin-bottom:36px;">
+        <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;">Visites quotidiennes — 30 derniers jours</div>
+        <div id="s-daily-chart" style="display:flex;align-items:flex-end;gap:3px;height:120px;"></div>
       </div>
     </div>
 
-    <!-- Sources + Pages -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px;">
-      <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
-        <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Sources · Contacts</div>
-        <div id="s-sources" style="font-size:15px;color:#1a2340;">Chargement...</div>
+    <!-- ═══ TAB: CODES D'ACCÈS ═══ -->
+    <div id="panel-codes" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;">Gestion des codes d'accès</h2>
+        <button onclick="showCreateCodeForm()" style="background:#1a4fd6;border:none;color:#fff;padding:10px 24px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;">+ NOUVEAU CODE</button>
       </div>
-      <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:24px;">
-        <div style="font-size:13px;letter-spacing:2px;color:#8a94b8;text-transform:uppercase;margin-bottom:16px;border-bottom:1px solid #e0e4f0;padding-bottom:12px;">Slides vues</div>
-        <div id="s-pages" style="font-size:15px;color:#1a2340;">Chargement...</div>
+
+      <!-- Create code form (hidden by default) -->
+      <div id="create-code-form" style="display:none;background:#f4f6fb;border:2px solid #1a4fd6;border-radius:6px;padding:24px;margin-bottom:24px;">
+        <h3 style="font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:16px;color:#1a2340;">Créer un nouveau code</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="font-size:12px;letter-spacing:1px;color:#8a94b8;text-transform:uppercase;display:block;margin-bottom:6px;">Code d'accès</label>
+            <input id="new-code" type="text" placeholder="Ex: CLIENTXYZ2026" style="width:100%;padding:10px 14px;border:1px solid #d0d5e8;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:15px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;letter-spacing:1px;color:#8a94b8;text-transform:uppercase;display:block;margin-bottom:6px;">Label / Destinataire</label>
+            <input id="new-label" type="text" placeholder="Ex: Nom Prénom · Société" style="width:100%;padding:10px 14px;border:1px solid #d0d5e8;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:15px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;letter-spacing:1px;color:#8a94b8;text-transform:uppercase;display:block;margin-bottom:6px;">Max utilisations (optionnel)</label>
+            <input id="new-maxuses" type="number" placeholder="Illimité" style="width:100%;padding:10px 14px;border:1px solid #d0d5e8;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:15px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;letter-spacing:1px;color:#8a94b8;text-transform:uppercase;display:block;margin-bottom:6px;">Date d'expiration (optionnel)</label>
+            <input id="new-expires" type="date" style="width:100%;padding:10px 14px;border:1px solid #d0d5e8;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:15px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;">
+          <button onclick="createNewCode()" style="background:#22a06b;border:none;color:#fff;padding:10px 24px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;">CRÉER</button>
+          <button onclick="hideCreateCodeForm()" style="background:#e0e4f0;border:none;color:#1a2340;padding:10px 24px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;">ANNULER</button>
+        </div>
+        <div id="create-code-msg" style="margin-top:12px;font-size:13px;"></div>
       </div>
+
+      <!-- Codes list -->
+      <div id="admin-codes-list" style="display:flex;flex-direction:column;gap:8px;">Chargement...</div>
     </div>
 
-    <!-- Codes d'accès -->
-    <div style="margin-bottom:36px;">
-      <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;margin-bottom:20px;">Codes d'accès</h2>
-      <div style="display:flex;flex-direction:column;gap:8px;" id="admin-codes">
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">demo</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">Tests internes</span></div>
-          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">FVAODE2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">François Valadoux · AMP Visual TV</span></div>
-          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">GDEDPA2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">GDE · DPA</span></div>
-          <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">HBSVOC2026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">HBS</span></div>
-           <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
-         </div>
-         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#f8f9fc;border-radius:10px;">
-          <div><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">AMM042026</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">AMM</span></div>
-           <span style="font-size:12px;color:#22a06b;font-weight:600;letter-spacing:1px;">● ACTIF</span>
-         </div>
+    <!-- ═══ TAB: SESSIONS & LOGS ═══ -->
+    <div id="panel-sessions" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;">Historique des sessions</h2>
+        <button onclick="exportSessionsCSV()" style="background:#1a4fd6;border:none;color:#fff;padding:10px 24px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;">EXPORT CSV</button>
       </div>
+      <div id="admin-sessions-list" style="display:flex;flex-direction:column;gap:6px;">Chargement...</div>
+
+      <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;margin-top:40px;margin-bottom:24px;">Logs d'accès</h2>
+      <div id="admin-logs-list" style="display:flex;flex-direction:column;gap:4px;">Chargement...</div>
     </div>
 
-    <!-- Liens UTM -->
-    <div>
+    <!-- ═══ TAB: LIENS TRACKÉS ═══ -->
+    <div id="panel-links" style="display:none;">
       <h2 style="font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2340;margin-bottom:20px;">Liens trackés</h2>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">HBS</span>
-          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=hbs</span>
-          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=hbs',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">Canal+</span>
-          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=canal</span>
-          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=canal',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">AMP Visual TV</span>
-          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=ampvisual</span>
-          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=ampvisual',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">OBS</span>
-          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=obs</span>
-          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=obs',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
-        </div>
-        <div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">WEC · GDE</span>
-          <span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">https://esplit.kreativlabs.tv?utm_source=wec</span>
-          <button onclick="copyUTM('https://esplit.kreativlabs.tv?utm_source=wec',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">COPIER</button>
-        </div>
-      </div>
+      <div id="admin-utm-links" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-// ── Admin ──
+// ── Admin Configuration ──
+const ADMIN_HASH = '6d00de5917661a19d01b7ebe75803e5a427423dee8f6bd4648cb95cb7b8eab3f';
 const PLAUSIBLE_KEY = 'j_TtEImwH_uAyBay7LnBlaAMfXG2ipLh4pxPmhpS1uwnmeN3_wOTO-xwc-WTUvtV';
 const PLAUSIBLE_DOMAIN = 'esplit.kreativlabs.tv';
+const API_BASE = '/api';
+let _adminData = {};
 
+// ── Session tracking ──
+let _sessionId = null;
+let _heartbeatInterval = null;
+
+async function startSessionTracking(code) {
+  try {
+    const hash = await sha256(code.toLowerCase());
+    const r = await fetch(API_BASE + '/verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ hash })
+    });
+    const d = await r.json();
+    if (d.sessionId) {
+      _sessionId = d.sessionId;
+      // Start heartbeat every 30 seconds
+      _heartbeatInterval = setInterval(() => sendHeartbeat(), 30000);
+    }
+  } catch(e) { console.log('Session tracking unavailable:', e.message); }
+}
+
+function sendHeartbeat() {
+  if (!_sessionId) return;
+  const slideEl = document.querySelectorAll('.slide')[typeof current !== 'undefined' ? current : 0];
+  const slideId = slideEl ? slideEl.id : 'unknown';
+  fetch(API_BASE + '/heartbeat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ sessionId: _sessionId, currentSlide: slideId })
+  }).catch(() => {});
+}
+
+// ── Tab switching ──
+function switchAdminTab(tab) {
+  ['dashboard','codes','sessions','links'].forEach(t => {
+    document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    if (t === tab) {
+      btn.style.color = '#1a4fd6'; btn.style.fontWeight = '700'; btn.style.borderBottom = '3px solid #1a4fd6';
+    } else {
+      btn.style.color = '#8a94b8'; btn.style.fontWeight = '600'; btn.style.borderBottom = '3px solid transparent';
+    }
+  });
+  if (tab === 'codes') loadCodes();
+  if (tab === 'sessions') { loadSessions(); loadLogs(); }
+  if (tab === 'links') renderUTMLinks();
+}
+
+// ── Open / Close admin ──
 function openAdmin() {
   document.getElementById('admin-panel').style.display = 'block';
-  loadStats();
+  switchAdminTab('dashboard');
+  loadDashboard();
 }
 
 function closeAdmin() {
   document.getElementById('admin-panel').style.display = 'none';
 }
 
-function copyUTM(url, btn) {
-  navigator.clipboard.writeText(url).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = '✓ COPIÉ';
-    btn.style.background = '#22a06b';
-    setTimeout(() => { btn.textContent = orig; btn.style.background = '#1a4fd6'; }, 1500);
-  });
-}
-
-async function loadStats() {
+// ── Dashboard ──
+async function loadDashboard() {
   const status = document.getElementById('admin-status');
-  const h = {'Authorization': 'Bearer ' + PLAUSIBLE_KEY};
-  const base = '/api/v1';
-
   try {
-    // Aggregate
-    const r = await fetch(base + '/stats/aggregate?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&metrics=visitors,pageviews,visit_duration,bounce_rate', {headers: h});
+    // Load from our API
+    const r = await fetch(API_BASE + '/dashboard', {
+      headers: {'X-Admin-Token': ADMIN_HASH}
+    });
     const d = await r.json();
-    if (d.results) {
-      document.getElementById('s-visitors').textContent = (d.results.visitors?.value ?? '—').toLocaleString('fr-FR');
-      document.getElementById('s-pageviews').textContent = (d.results.pageviews?.value ?? '—').toLocaleString('fr-FR');
-      const dur = d.results.visit_duration?.value;
-      document.getElementById('s-duration').textContent = dur ? Math.round(dur/60) + ' min' : '—';
-      const b = d.results.bounce_rate?.value;
-      document.getElementById('s-bounce').textContent = b != null ? b + '%' : '—';
-      status.textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+    _adminData = d;
+
+    document.getElementById('s-total-visits').textContent = (d.totalVisits30d || 0).toLocaleString('fr-FR');
+    document.getElementById('s-total-sessions').textContent = (d.totalSessions30d || 0).toLocaleString('fr-FR');
+    const dur = d.avgDuration || 0;
+    document.getElementById('s-avg-duration').textContent = dur > 60 ? Math.round(dur/60) + ' min' : dur + 's';
+    document.getElementById('s-active-codes').textContent = d.activeCodes || 0;
+    document.getElementById('s-total-codes').textContent = d.totalCodes || 0;
+    document.getElementById('s-active-sessions').textContent = d.activeSessions || 0;
+
+    // Active sessions badge
+    const badge = document.getElementById('admin-active-badge');
+    if (d.activeSessions > 0) {
+      badge.textContent = d.activeSessions + ' en ligne';
+      badge.style.display = 'inline-block';
+    } else { badge.style.display = 'none'; }
+
+    // Usage by code
+    const ucEl = document.getElementById('s-usage-by-code');
+    if (d.usageByCode && Object.keys(d.usageByCode).length > 0) {
+      ucEl.innerHTML = Object.entries(d.usageByCode)
+        .sort((a,b) => b[1] - a[1])
+        .map(([code, count]) => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e8ecf4;"><span style="color:#1a2340;font-weight:600;">' + code + '</span><span style="color:#1a4fd6;font-weight:700;">' + count + '</span></div>')
+        .join('');
     } else {
-      status.textContent = 'Aucune donnée — site pas encore visité via ce domaine.';
+      ucEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune visite enregistrée.</span>';
     }
 
-    // Sources
-    const rs = await fetch(base + '/stats/breakdown?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&property=visit:source&limit=8', {headers: h});
+    // Daily chart
+    renderDailyChart(d.dailyVisits || {});
+
+    // Plausible sources
+    await loadPlausibleSources();
+
+    status.textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+  } catch(e) {
+    status.textContent = 'Erreur API : ' + e.message;
+  }
+}
+
+function renderDailyChart(dailyVisits) {
+  const el = document.getElementById('s-daily-chart');
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const max = Math.max(1, ...days.map(d => dailyVisits[d] || 0));
+  el.innerHTML = days.map(d => {
+    const v = dailyVisits[d] || 0;
+    const h = Math.max(2, (v / max) * 100);
+    const label = d.slice(8, 10) + '/' + d.slice(5, 7);
+    return '<div title="' + label + ': ' + v + ' visite(s)" style="flex:1;background:' + (v > 0 ? '#1a4fd6' : '#e0e4f0') + ';height:' + h + '%;border-radius:2px 2px 0 0;min-width:4px;cursor:default;position:relative;"></div>';
+  }).join('');
+}
+
+async function loadPlausibleSources() {
+  const h = {'Authorization': 'Bearer ' + PLAUSIBLE_KEY};
+  try {
+    const rs = await fetch('/api/v1/stats/breakdown?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&property=visit:source&limit=8', {headers: h});
     const ds = await rs.json();
     const srcEl = document.getElementById('s-sources');
     if (ds.results?.length) {
@@ -1659,27 +1777,185 @@ async function loadStats() {
         '<span style="color:#1a4fd6;font-weight:700;">' + s.visitors + '</span></div>'
       ).join('');
     } else {
-      srcEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune visite enregistrée.</span>';
+      srcEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune source Plausible.</span>';
     }
-
-    // Pages
-    const rp = await fetch(base + '/stats/breakdown?site_id=' + PLAUSIBLE_DOMAIN + '&period=30d&property=event:page&limit=10', {headers: h});
-    const dp = await rp.json();
-    const pgEl = document.getElementById('s-pages');
-    if (dp.results?.length) {
-      pgEl.innerHTML = dp.results.map(p =>
-        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e8ecf4;">' +
-        '<span style="color:#1a2340;font-size:13px;">' + p.page + '</span>' +
-        '<span style="color:#1a4fd6;font-weight:700;">' + p.visitors + '</span></div>'
-      ).join('');
-    } else {
-      pgEl.innerHTML = '<span style="color:#aab0c8;font-size:13px;">Aucune donnée.</span>';
-    }
-
   } catch(e) {
-    status.textContent = 'Erreur API : ' + e.message;
-    document.getElementById('s-sources').innerHTML = '<span style="color:#c33;font-size:13px;">Erreur API.</span>';
+    document.getElementById('s-sources').innerHTML = '<span style="color:#aab0c8;font-size:13px;">Plausible indisponible.</span>';
   }
+}
+
+// ── Codes CRUD ──
+async function loadCodes() {
+  const el = document.getElementById('admin-codes-list');
+  try {
+    const r = await fetch(API_BASE + '/codes', { headers: {'X-Admin-Token': ADMIN_HASH} });
+    const d = await r.json();
+    if (!d.codes?.length) { el.innerHTML = '<span style="color:#aab0c8;">Aucun code.</span>'; return; }
+    el.innerHTML = d.codes.map(c => {
+      const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+      const isMaxed = c.maxUses && c.usageCount >= c.maxUses;
+      const statusColor = c.status !== 'active' ? '#c33' : isExpired ? '#e65100' : isMaxed ? '#e65100' : '#22a06b';
+      const statusText = c.status !== 'active' ? 'INACTIF' : isExpired ? 'EXPIRÉ' : isMaxed ? 'QUOTA ATTEINT' : 'ACTIF';
+      const lastUsed = c.lastUsedAt ? new Date(c.lastUsedAt).toLocaleDateString('fr-FR') + ' ' + new Date(c.lastUsedAt).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}) : 'Jamais';
+      return '<div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:16px 20px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="flex:1;"><span style="font-size:16px;font-weight:700;color:#1a4fd6;letter-spacing:2px;">' + c.code + '</span><span style="font-size:13px;color:#8a94b8;margin-left:16px;">' + c.label + '</span></div>' +
+        '<div style="display:flex;align-items:center;gap:16px;">' +
+        '<span style="font-size:12px;color:#8a94b8;">' + c.usageCount + ' visite(s)</span>' +
+        '<span style="font-size:12px;color:#8a94b8;">Dernière : ' + lastUsed + '</span>' +
+        '<span style="font-size:12px;color:' + statusColor + ';font-weight:600;letter-spacing:1px;">● ' + statusText + '</span>' +
+        (c.status === 'active' ? '<button onclick="toggleCodeStatus(\'' + c.id + '\',\'inactive\')" style="background:#e65100;border:none;color:#fff;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:\'Barlow Condensed\',sans-serif;">DÉSACTIVER</button>' : '<button onclick="toggleCodeStatus(\'' + c.id + '\',\'active\')" style="background:#22a06b;border:none;color:#fff;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:\'Barlow Condensed\',sans-serif;">ACTIVER</button>') +
+        '<button onclick="deleteCodeConfirm(\'' + c.id + '\',\'' + c.code + '\')" style="background:#c33;border:none;color:#fff;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:\'Barlow Condensed\',sans-serif;">SUPPR</button>' +
+        '</div></div>' +
+        (c.maxUses ? '<div style="font-size:11px;color:#8a94b8;margin-top:6px;">Quota : ' + c.usageCount + '/' + c.maxUses + (c.expiresAt ? ' · Expire : ' + c.expiresAt.slice(0,10) : '') + '</div>' : (c.expiresAt ? '<div style="font-size:11px;color:#8a94b8;margin-top:6px;">Expire : ' + c.expiresAt.slice(0,10) + '</div>' : '')) +
+        '</div>';
+    }).join('');
+  } catch(e) { el.innerHTML = '<span style="color:#c33;">Erreur : ' + e.message + '</span>'; }
+}
+
+function showCreateCodeForm() { document.getElementById('create-code-form').style.display = 'block'; }
+function hideCreateCodeForm() { document.getElementById('create-code-form').style.display = 'none'; document.getElementById('create-code-msg').textContent = ''; }
+
+async function createNewCode() {
+  const code = document.getElementById('new-code').value.trim();
+  const label = document.getElementById('new-label').value.trim();
+  const maxUses = parseInt(document.getElementById('new-maxuses').value) || null;
+  const expiresAt = document.getElementById('new-expires').value || null;
+  const msg = document.getElementById('create-code-msg');
+  if (!code || !label) { msg.innerHTML = '<span style="color:#c33;">Code et label requis.</span>'; return; }
+  try {
+    const r = await fetch(API_BASE + '/codes/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_HASH},
+      body: JSON.stringify({ code, label, maxUses, expiresAt })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      msg.innerHTML = '<span style="color:#22a06b;">Code "' + code + '" créé avec succès !</span>';
+      document.getElementById('new-code').value = '';
+      document.getElementById('new-label').value = '';
+      document.getElementById('new-maxuses').value = '';
+      document.getElementById('new-expires').value = '';
+      setTimeout(() => { hideCreateCodeForm(); loadCodes(); }, 1200);
+    } else {
+      msg.innerHTML = '<span style="color:#c33;">Erreur : ' + (d.error || 'Inconnu') + '</span>';
+    }
+  } catch(e) { msg.innerHTML = '<span style="color:#c33;">Erreur réseau : ' + e.message + '</span>'; }
+}
+
+async function toggleCodeStatus(id, newStatus) {
+  try {
+    await fetch(API_BASE + '/codes/update', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_HASH},
+      body: JSON.stringify({ id, status: newStatus })
+    });
+    loadCodes();
+  } catch(e) { alert('Erreur : ' + e.message); }
+}
+
+async function deleteCodeConfirm(id, code) {
+  if (!confirm('Supprimer le code "' + code + '" ? Cette action est irréversible.')) return;
+  try {
+    await fetch(API_BASE + '/codes/delete', {
+      method: 'DELETE',
+      headers: {'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_HASH},
+      body: JSON.stringify({ id })
+    });
+    loadCodes();
+  } catch(e) { alert('Erreur : ' + e.message); }
+}
+
+// ── Sessions & Logs ──
+async function loadSessions() {
+  const el = document.getElementById('admin-sessions-list');
+  try {
+    const r = await fetch(API_BASE + '/sessions', { headers: {'X-Admin-Token': ADMIN_HASH} });
+    const d = await r.json();
+    if (!d.sessions?.length) { el.innerHTML = '<span style="color:#aab0c8;">Aucune session enregistrée.</span>'; return; }
+    el.innerHTML = '<div style="display:grid;grid-template-columns:140px 120px 80px 80px 1fr 100px;gap:8px;padding:10px 16px;background:#1a2340;color:#fff;border-radius:4px 4px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;"><span>Date</span><span>Code</span><span>Durée</span><span>Pages</span><span>Slides vues</span><span>IP</span></div>' +
+      d.sessions.slice(0, 50).map(s => {
+        const date = new Date(s.startedAt).toLocaleDateString('fr-FR') + ' ' + new Date(s.startedAt).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+        const dur = s.duration > 60 ? Math.round(s.duration/60) + ' min' : (s.duration || 0) + 's';
+        const slides = (s.slidesViewed || []).length;
+        return '<div style="display:grid;grid-template-columns:140px 120px 80px 80px 1fr 100px;gap:8px;padding:10px 16px;background:#f4f6fb;border:1px solid #e0e4f0;font-size:13px;align-items:center;">' +
+          '<span style="color:#1a2340;">' + date + '</span>' +
+          '<span style="color:#1a4fd6;font-weight:700;">' + s.code + '</span>' +
+          '<span>' + dur + '</span>' +
+          '<span>' + (s.pagesViewed || 0) + '</span>' +
+          '<span style="font-size:11px;color:#8a94b8;">' + (s.slidesViewed || []).join(', ') + '</span>' +
+          '<span style="font-size:11px;color:#8a94b8;">' + (s.ip || '—') + '</span>' +
+          '</div>';
+      }).join('');
+  } catch(e) { el.innerHTML = '<span style="color:#c33;">Erreur : ' + e.message + '</span>'; }
+}
+
+async function loadLogs() {
+  const el = document.getElementById('admin-logs-list');
+  try {
+    const r = await fetch(API_BASE + '/logs', { headers: {'X-Admin-Token': ADMIN_HASH} });
+    const d = await r.json();
+    if (!d.logs?.length) { el.innerHTML = '<span style="color:#aab0c8;">Aucun log.</span>'; return; }
+    el.innerHTML = '<div style="display:grid;grid-template-columns:160px 120px 1fr 120px;gap:8px;padding:10px 16px;background:#1a2340;color:#fff;border-radius:4px 4px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;"><span>Date/Heure</span><span>Code</span><span>User Agent</span><span>IP</span></div>' +
+      d.logs.slice(0, 100).map(l => {
+        const date = new Date(l.timestamp).toLocaleDateString('fr-FR') + ' ' + new Date(l.timestamp).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const ua = (l.userAgent || '').length > 60 ? l.userAgent.slice(0, 60) + '...' : (l.userAgent || '—');
+        return '<div style="display:grid;grid-template-columns:160px 120px 1fr 120px;gap:8px;padding:8px 16px;background:#f4f6fb;border:1px solid #e0e4f0;font-size:12px;align-items:center;">' +
+          '<span style="color:#1a2340;">' + date + '</span>' +
+          '<span style="color:#1a4fd6;font-weight:700;">' + l.code + '</span>' +
+          '<span style="color:#8a94b8;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + ua + '</span>' +
+          '<span style="font-size:11px;color:#8a94b8;">' + (l.ip || '—') + '</span>' +
+          '</div>';
+      }).join('');
+  } catch(e) { el.innerHTML = '<span style="color:#c33;">Erreur : ' + e.message + '</span>'; }
+}
+
+function exportSessionsCSV() {
+  fetch(API_BASE + '/sessions', { headers: {'X-Admin-Token': ADMIN_HASH} })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.sessions?.length) { alert('Aucune session à exporter.'); return; }
+      const header = 'Date,Code,Label,IP,Durée (s),Pages vues,Slides vues\n';
+      const rows = d.sessions.map(s =>
+        [s.startedAt, s.code, s.label, s.ip, s.duration, s.pagesViewed, (s.slidesViewed||[]).join(';')].join(',')
+      ).join('\n');
+      const blob = new Blob([header + rows], {type: 'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'esplit-sessions-' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+    });
+}
+
+// ── UTM Links ──
+function renderUTMLinks() {
+  const links = [
+    {name: 'HBS', source: 'hbs'},
+    {name: 'Canal+', source: 'canal'},
+    {name: 'AMP Visual TV', source: 'ampvisual'},
+    {name: 'OBS', source: 'obs'},
+    {name: 'WEC · GDE', source: 'wec'},
+    {name: 'AMM', source: 'amm'},
+    {name: 'FFTC', source: 'fftc'},
+  ];
+  const el = document.getElementById('admin-utm-links');
+  el.innerHTML = links.map(l => {
+    const url = 'https://esplit.kreativlabs.tv?utm_source=' + l.source;
+    return '<div style="background:#f4f6fb;border:1px solid #e0e4f0;border-radius:4px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">' +
+      '<span style="font-size:14px;color:#1a2340;min-width:120px;font-weight:600;">' + l.name + '</span>' +
+      '<span style="font-size:13px;color:#1a4fd6;flex:1;margin:0 16px;">' + url + '</span>' +
+      '<button onclick="copyUTM(\'' + url + '\',this)" style="background:#1a4fd6;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:1px;">COPIER</button>' +
+      '</div>';
+  }).join('');
+}
+
+function copyUTM(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ COPIÉ';
+    btn.style.background = '#22a06b';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = '#1a4fd6'; }, 1500);
+  });
 }
 </script>
 
