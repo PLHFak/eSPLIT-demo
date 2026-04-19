@@ -6,7 +6,7 @@
 <title>eSplit XS+W+XL</title>
 
 <!-- Plausible Analytics -->
-<script async src="https://plausible.io/js/pa-XL1yOyCcwK86vpDAUm9Gk.js"></script>
+<script defer data-domain="esplit.kreativlabs.tv" data-api="/api/event" src="/js/script.js"></script>
 <script>
   window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)};plausible.init=plausible.init||function(){};
 </script>
@@ -635,10 +635,9 @@ html, body {
 
 </style>
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-RYDq0hhsLGj6b1GoNH8sU.js"></script>
+<script defer data-domain="esplit.kreativlabs.tv" data-api="/api/event" src="/js/script.js"></script>
 <script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)};
 </script>
 </head>
 <body>
@@ -1626,7 +1625,7 @@ function copyUTM(url, btn) {
 async function loadStats() {
   const status = document.getElementById('admin-status');
   const h = {'Authorization': 'Bearer ' + PLAUSIBLE_KEY};
-  const base = 'https://plausible.io/api/v1';
+  const base = '/api/v1';
 
   try {
     // Aggregate

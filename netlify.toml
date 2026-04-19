@@ -1,0 +1,22 @@
+# ── Plausible Analytics Proxy ──
+# Proxy le script de tracking et l'API d'événements via le domaine du site
+# pour contourner les bloqueurs et pare-feux d'entreprise.
+# Recommandé par Plausible : https://plausible.io/docs/proxy/guides/netlify
+
+# Proxy du script de tracking
+[[redirects]]
+  from = "/js/script.js"
+  to = "https://plausible.io/js/script.js"
+  status = 200
+
+# Proxy de l'endpoint d'événements (envoi des données de visite)
+[[redirects]]
+  from = "/api/event"
+  to = "https://plausible.io/api/event"
+  status = 200
+
+# Proxy de l'API Stats (pour le panneau admin)
+[[redirects]]
+  from = "/api/v1/*"
+  to = "https://plausible.io/api/v1/:splat"
+  status = 200
